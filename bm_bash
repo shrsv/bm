@@ -1,0 +1,10 @@
+function bm {
+    # matches bm 1 format? 
+    re='^[0-9]+$'
+    if [[ $1 =~ $re ]] ; then
+        cd `bm_util $1` 
+    else
+        # if not matches other formats
+        bm_util "$@"
+    fi
+}
