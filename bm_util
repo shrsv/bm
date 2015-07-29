@@ -14,8 +14,69 @@
 # bm f str   - find string str in all bookmark paths and cd to it
 # bm s (id|name|hits|time) - sort the table by column
 
-if __name__ == "main":
-    pass
+import os
+import sys
+import re
+import sqlite3
+
+# --- GLOBALS ---
+
+SCHEMA = """
+BEGIN TRANSACTION;
+CREATE TABLE `bookmarks` (
+    `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+    `name`  TEXT,
+    `path`  TEXT UNIQUE,
+    `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
+    `hits`  INTEGER,
+    `timestamp` TEXT
+);
+COMMIT;
+"""
+DB_PATH = "~/.bookmarks.db"
+
+# --- GLOBALS END ---
+
+
+
+def main():
+    
+    cur = open_database()
+    cur.execute("SELECT * FROM bookmarks")
+    print cur
+
+    # 'bm'
+    if len(sys.argv) < 2:
+        print "Print list"
+
+    # 'bm a'
+    elif sys.argv[1] == 'a':
+        working_dir = os.getcwd()
+        #dir_name = get_dir_name(working_dir)
+        print "bm add" 
+
+    # 'bm d id'
+    elif sys.argv[1] == 'd':
+        # delete the given bookmark
+        if len(sys.argv) == 3:
+            id = int(sys.argv[2])
+        else:
+            print "To delete [5], type:\n\n\tbm d 5\n"
+            exit()
+
+        # delete_line(id)
+        print "delete"
+
+    else:
+        # goto bookmark, if number is valid
+        id = int(sys.argv[1])
+        #line = get_line(id)
+        #if line:
+        #    goto = get_path_in_line(line)
+        #    print shellquote(goto)
+        print "cd"
+
+
 
 # Interface functions
 def bm():
@@ -52,8 +113,13 @@ def bm_s():
 
 # Internal functions
 def open_database():
-    pass
-
+    conn = sqlite3.connect(os.path.expanduser(DB_PATH))
+    c = conn.cursor()
+    try:
+        c.executescript(SCHEMA)
+    except:
+        pass
+    return c
 
 def print_complete_table(sort="id"):
     pass
@@ -102,3 +168,6 @@ def get_cur_row_find(str="str"):
 # sqlite functions (return 1 = success or 0 = failure)
 def del_row(id=1):
     pass
+
+if __name__ == "__main__":
+    main()
