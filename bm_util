@@ -18,11 +18,12 @@ import os
 import sys
 import re
 import sqlite3
+import time
 
 # --- GLOBALS ---
 
 SCHEMA = """
-BEGIN TRANSACTION;
+BEGIN TRANSACTION
 CREATE TABLE `bookmarks` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
@@ -32,18 +33,41 @@ CREATE TABLE `bookmarks` (
     `timestamp` TEXT
 );
 COMMIT;
+END TRANSACTION
 """
 DB_PATH = "~/.bookmarks.db"
+TABLE_NAME = "bookmarks"
 
 # --- GLOBALS END ---
 
+class DatabaseManager(object):
+    def __init__(self):
+        self.conn = sqlite3.connect(os.path.expanduser(DB_PATH))
+        try:
+            self.conn.executescript(SCHEMA)
+        except:
+            pass
+        self.cur = self.conn.cursor()
+
+    def query(self, arg, tup):
+        try:
+            self.cur.execute(arg, tup)
+        except sqlite3.IntegrityError:
+            print "Folder already bookmarked!"
+        self.conn.commit()
+        return self.cur
+
+    def __del__(self):
+        self.conn.close()
+
+
+def get_dir_name(path):
+    r = re.search('.*/([^/]*)', path)
+    return r.group(1)
 
 
 def main():
-    
-    cur = open_database()
-    cur.execute("SELECT * FROM bookmarks")
-    print cur
+    db = DatabaseManager()
 
     # 'bm'
     if len(sys.argv) < 2:
@@ -51,9 +75,8 @@ def main():
 
     # 'bm a'
     elif sys.argv[1] == 'a':
-        working_dir = os.getcwd()
-        #dir_name = get_dir_name(working_dir)
-        print "bm add" 
+        bm_a(db)
+
 
     # 'bm d id'
     elif sys.argv[1] == 'd':
@@ -83,8 +106,17 @@ def bm():
     pass
 
 
-def bm_a():
-    pass
+def bm_a(db):
+    bm_id = None
+    bm_path = os.getcwd()
+    bm_name = get_dir_name(bm_path)
+    bm_isvalid = "1"
+    bm_hits = "0"
+    bm_timestamp = time.time()
+
+    statement = "INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?, ?, ?, ?)"
+    tup = (bm_id, bm_name, bm_path, bm_isvalid, bm_hits, bm_timestamp)
+    db.query(statement, tup)
 
 
 def bm_id(id=id):
@@ -112,15 +144,6 @@ def bm_s():
 
 
 # Internal functions
-def open_database():
-    conn = sqlite3.connect(os.path.expanduser(DB_PATH))
-    c = conn.cursor()
-    try:
-        c.executescript(SCHEMA)
-    except:
-        pass
-    return c
-
 def print_complete_table(sort="id"):
     pass
 
