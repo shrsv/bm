@@ -35,6 +35,23 @@ CREATE TABLE `bookmarks` (
 COMMIT;
 END TRANSACTION
 """
+
+RENUMBER = """
+BEGIN TRANSACTION;
+CREATE TABLE `bookmarks_backup` (
+    `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+    `name`  TEXT,
+    `path`  TEXT UNIQUE,
+    `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
+    `hits`  INTEGER,
+    `timestamp` TEXT
+);
+INSERT INTO bookmarks_backup (name, path, is_valid, hits, timestamp) SELECT name, path, is_valid, hits, timestamp FROM bookmarks;
+DROP TABLE bookmarks;
+ALTER TABLE bookmarks_backup RENAME TO bookmarks;
+COMMIT;
+"""
+
 DB_PATH = "~/.bookmarks.db"
 TABLE_NAME = "bookmarks"
 
@@ -125,6 +142,12 @@ def main():
             exit()
 
         bm_d_id(db, id)
+
+    # 'bm r'
+    elif sys.argv[1] == 'r':
+        db.conn.executescript(RENUMBER)
+        
+
     else:
         # goto bookmark, if number is valid
         try:
@@ -173,10 +196,6 @@ def bm_d_id(db, id):
 
 
 def bm_c():
-    pass
-
-
-def bm_r():
     pass
 
 
