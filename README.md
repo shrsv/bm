@@ -7,4 +7,4 @@
 5. bm c       - clear all dead bookmarks
 6. bm r       - renumber all bookmark ids
 7. bm f str   - find string str in all bookmark paths and cd to it
-8. bm s (id|name|hits|time) - sort the table by column
+8. bm s (bm_id|name|path|hits|timestamp) - sort the table by column

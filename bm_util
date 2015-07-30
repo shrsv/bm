@@ -12,7 +12,7 @@
 # bm c       - clear all dead bookmarks
 # bm r       - renumber all bookmark ids
 # bm f str   - find string str in all bookmark paths and cd to it
-# bm s (id|name|hits|time) - sort the table by column
+# bm s (bm_id|name|path|hits|timestamp) - sort the table by column
 
 import os
 import sys
@@ -146,6 +146,16 @@ def main():
     # 'bm r'
     elif sys.argv[1] == 'r':
         db.conn.executescript(RENUMBER)
+
+    # 'bm f str'
+    elif sys.argv[1] == 'f':
+        str = sys.argv[2]
+        bm_f_str(db, str)
+
+    # 'bm s value'
+    elif sys.argv[1] == 's':
+        col = sys.argv[2]
+        bm_s(db, col)
         
 
     else:
@@ -199,13 +209,23 @@ def bm_c():
     pass
 
 
-def bm_f_str():
-    pass
+def bm_f_str(db, str):
+    statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " WHERE path like '%"+str+"%'"
+    cur = db.query(statement)
+    print pp(cur)
 
 
-def bm_s():
-    pass
-
+def bm_s(db, col):
+    opts = ["bm_id", "name", "path",  "hits", "timestamp"]
+    if col in opts:
+        statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " ORDER BY " + col
+        cur = db.query(statement)
+        print pp(cur)
+    else:
+        print "Sort parameter should be one of the following: "
+        for opt in opts:
+            print opt
+     
 
 # Internal functions
 def print_complete_table(sort="id"):
