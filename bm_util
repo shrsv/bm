@@ -40,6 +40,45 @@ TABLE_NAME = "bookmarks"
 
 # --- GLOBALS END ---
 
+def shellquote(s):
+    s = s.replace("'", "\'")
+    return s
+
+# from: http://code.activestate.com/recipes/81189-pretty-printing-of-database-cursor-contents/
+# One of the problems of dealing with databases is presenting the result of a query when you may not know much about the data. 
+# This recipe uses the cursor's description attribute to try and provide appropriate headings,
+# and optionally examines each output row to ensure column widths are adequate.
+
+def pp(cursor, data=None, rowlens=0):
+    d = cursor.description
+    if not d:
+        return "#### NO RESULTS ###"
+    names = []
+    lengths = []
+    rules = []
+    if not data:
+        data = cursor.fetchall()
+    for dd in d:    # iterate over description
+        l = dd[1]
+        if not l:
+            l = 12             # or default arg ...
+        l = max(l, len(dd[0])) # handle long names
+        names.append(dd[0])
+        lengths.append(l)
+    for col in range(len(lengths)):
+        if rowlens:
+            rls = [len(str(row[col])) for row in data if row[col]]
+            lengths[col] = max([lengths[col]]+rls)
+        rules.append("-"*lengths[col])
+    format = " ".join(["%%-%ss" % l for l in lengths])
+    result = [format % tuple(names)]
+    result.append(format % tuple(rules))
+    for row in data:
+        result.append(format % row)
+    return "\n".join(result)
+
+
+
 class DatabaseManager(object):
     def __init__(self):
         self.conn = sqlite3.connect(os.path.expanduser(DB_PATH))
@@ -49,7 +88,7 @@ class DatabaseManager(object):
             pass
         self.cur = self.conn.cursor()
 
-    def query(self, arg, tup):
+    def query(self, arg, tup=()):
         try:
             self.cur.execute(arg, tup)
         except sqlite3.IntegrityError:
@@ -71,8 +110,7 @@ def main():
 
     # 'bm'
     if len(sys.argv) < 2:
-        print "Print list"
-
+        bm(db)
     # 'bm a'
     elif sys.argv[1] == 'a':
         bm_a(db)
@@ -80,30 +118,30 @@ def main():
 
     # 'bm d id'
     elif sys.argv[1] == 'd':
-        # delete the given bookmark
-        if len(sys.argv) == 3:
+        try:
             id = int(sys.argv[2])
-        else:
-            print "To delete [5], type:\n\n\tbm d 5\n"
+        except:
+            print "To delete bookmark 5, type:\n\n\tbm d 5\n"
             exit()
 
-        # delete_line(id)
-        print "delete"
-
+        bm_d_id(db, id)
     else:
         # goto bookmark, if number is valid
-        id = int(sys.argv[1])
-        #line = get_line(id)
-        #if line:
-        #    goto = get_path_in_line(line)
-        #    print shellquote(goto)
-        print "cd"
+        try:
+            id = int(sys.argv[1])
+        except ValueError:
+            print "To goto bookmark 5, type:\n\n\tbm 5\n"
+            exit()
+
+        bm_id(db, id)
 
 
 
 # Interface functions
-def bm():
-    pass
+def bm(db):
+    statement = "SELECT bm_id, name, path  FROM " + TABLE_NAME
+    cur = db.query(statement)
+    print pp(cur)
 
 
 def bm_a(db):
@@ -119,12 +157,19 @@ def bm_a(db):
     db.query(statement, tup)
 
 
-def bm_id(id=id):
-    pass
+def bm_id(db, id):
+    statement = "SELECT * FROM " + TABLE_NAME + " WHERE bm_id=?"
+    cur = db.query(statement, (id, ))
+    res =  cur.fetchone()
+    new_hits = res[4] + 1
+    statement = "UPDATE " + TABLE_NAME + " SET hits=? WHERE bm_id=?"
+    db.query(statement, (new_hits,id))
+    print shellquote(res[2])
 
 
-def bm_d_id(id=id):
-    pass
+def bm_d_id(db, id):
+    statement = "DELETE FROM " + TABLE_NAME + " WHERE bm_id=?"
+    db.query(statement, (id, ))
 
 
 def bm_c():
