@@ -29,10 +29,9 @@ CREATE TABLE `bookmarks` (
     `name`  TEXT,
     `path`  TEXT UNIQUE,
     `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
-    `hits`  INTEeGER,
+    `hits`  INTEEGER,
     `timestamp` TEXT
 );
-COMMIT;
 """
 
 RENUMBER = \
@@ -42,13 +41,12 @@ CREATE TABLE `bookmarks_backup` (
     `name`  TEXT,
     `path`  TEXT UNIQUE,
     `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
-    `hits`  INThEGER,
+    `hits`  INTEGER,
     `timestamp` TEXT
 );
 INSERT INTO bookmarks_backup (name, path, is_valid, hits, timestamp) SELECT name, path, is_valid, hits, timestamp FROM bookmarks;
 DROP TABLE bookmarks;
 ALTER TABLE bookmarks_backup RENAME TO bookmarks;
-COMMIT;
 """
 
 DB_PATH = '~/.bookmarks.db'
@@ -276,7 +274,7 @@ def main():
 '''
             exit()
 
-        bm_id(db, id)
+        bm_id_goto(db, id)
 
 
 
@@ -312,17 +310,17 @@ def bm_a(db):
     db.query(statement, tup)
 
 
-def bm_id(db, bm_id):
+def bm_id_goto(db, id):
     """This works in conjuction with the shell function "bm". Given
     bm_id, finds corresponding path, shellquotes it, then prints it.
     This output is used by the shell function to change directory in
     the parent process of this python program."""
     statement = 'SELECT * FROM ' + TABLE_NAME + ' WHERE bm_id=?'
-    cur = db.query(statement, (bm_id, ))
+    cur = db.query(statement, (id, ))
     res = cur.fetchone()
     new_hits = res[4] + 1
     statement = 'UPDATE ' + TABLE_NAME + ' SET hits=? WHERE bm_id=?'
-    db.query(statement, (new_hits, bm_id))
+    db.query(statement, (new_hits, id))
     print shellquote(res[2])
 
 
