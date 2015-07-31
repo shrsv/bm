@@ -271,7 +271,7 @@ def main():
         # goto bookmark, if number is valid
 
         try:
-            bm_id = int(sys.argv[1])
+            id = int(sys.argv[1])
         except ValueError:
             print '''To goto bookmark 5, type:
 
@@ -279,7 +279,7 @@ def main():
 '''
             exit()
 
-        bm_id(db, bm_id)
+        bm_id(db, id)
 
 
 

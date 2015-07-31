@@ -2,6 +2,8 @@
 
 `bm` is an ultra-simple bookmarking script for the bash shell. 
 
+![Screenshot](screenshot.jpeg)
+
 # Installation
 
 Download or clone this repository. Then:
