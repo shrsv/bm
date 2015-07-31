@@ -7,7 +7,7 @@
 Download or clone this repository. Then:
 	
 	$ cd bm
-	$ chmod u+x install.ch
+	$ chmod u+x install.sh
 	$ ./install.sh  # will ask for password
 
 # Usage
