@@ -24,7 +24,7 @@ import time
 
 SCHEMA = \
     """
-BEGIN TRANSACTION
+BEGIN TRANSACTION;
 CREATE TABLE `bookmarks` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE `bookmarks` (
     `timestamp` TEXT
 );
 COMMIT;
-END TRANSACTION
+END TRANSACTION;
 """
 
 RENUMBER = \
@@ -63,7 +63,7 @@ PRINT_RED = '\033[1;31m%s\033[0m'  # usage: print PRINT_RED % str_var
 # --- GLOBALS END ---
 
 
-class DatabaseManager(object):
+class DatabaseManager:
     """Handle opening ~/.bookmarks.db, maintain connection througout
     program execution, enable queries (with commits) and during program
     exit, close the database connection."""
@@ -72,8 +72,8 @@ class DatabaseManager(object):
         self.conn = sqlite3.connect(os.path.expanduser(DB_PATH))
         try:
             self.conn.executescript(SCHEMA)
-        except:
-            pass
+        except Exception, err:
+            print err
         self.cur = self.conn.cursor()
 
     def query(self, arg, tup=()):
