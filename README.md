@@ -8,3 +8,7 @@
 6. bm r       - renumber all bookmark ids
 7. bm f str   - find string str in all bookmark paths and cd to it
 8. bm s (bm_id|name|path|hits|timestamp) - sort the table by column
+
+# Some principles of relevance
+
+1. It is easier to select a desired object from a displayed collection of objects that it is to remember and retreive the name of the desired object from memory.

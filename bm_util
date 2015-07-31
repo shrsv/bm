@@ -14,6 +14,7 @@
 # bm f str   - find string str in all bookmark paths and cd to it
 # bm s (bm_id|name|path|hits|timestamp) - sort the table by column
 
+from pprint import pprint
 import os
 import sys
 import re
@@ -61,38 +62,62 @@ def shellquote(s):
     s = s.replace("'", "\'")
     return s
 
-# from: http://code.activestate.com/recipes/81189-pretty-printing-of-database-cursor-contents/
-# One of the problems of dealing with databases is presenting the result of a query when you may not know much about the data. 
-# This recipe uses the cursor's description attribute to try and provide appropriate headings,
-# and optionally examines each output row to ensure column widths are adequate.
-
+# pretty print the cursor (with appropriate table size)
 def pp(cursor, data=None, rowlens=0):
     d = cursor.description
     if not d:
-        return "#### NO RESULTS ###"
-    names = []
-    lengths = []
-    rules = []
+        return "You have no bookmark. Type 'bm a' to add a new bookmark!"
+
     if not data:
         data = cursor.fetchall()
-    for dd in d:    # iterate over description
-        l = dd[1]
-        if not l:
-            l = 12             # or default arg ...
-        l = max(l, len(dd[0])) # handle long names
-        names.append(dd[0])
-        lengths.append(l)
-    for col in range(len(lengths)):
-        if rowlens:
-            rls = [len(str(row[col])) for row in data if row[col]]
-            lengths[col] = max([lengths[col]]+rls)
-        rules.append("-"*lengths[col])
-    format = " ".join(["%%-%ss" % l for l in lengths])
-    result = [format % tuple(names)]
-    result.append(format % tuple(rules))
-    for row in data:
-        result.append(format % row)
-    return "\n".join(result)
+
+    no_of_cols = len(d)
+    no_of_rows = len(data)
+
+    # printing will require two passes
+    # PASS1: Determine max lengths in each column
+    # PASS2: Print the column using the data from PASS1
+
+    # PASS1
+    max_col_lengths = []
+    for col in range(no_of_cols):
+        max_col_lengths.append(len(d[col][0]))
+
+    for col in range(no_of_cols):
+        this_col_max =  max_col_lengths[col]
+        for row in range(no_of_rows):
+            l = len(str(data[row][col]))
+            this_col_max = max(this_col_max, l)
+        max_col_lengths[col] = this_col_max
+
+
+    # PASS2
+    total_width = sum(max_col_lengths) + 2*no_of_cols + no_of_cols + 1
+    separator = '-' * total_width 
+
+    print separator
+
+    # print headers
+    header = []
+    for col in range(no_of_cols):
+        header.append("|")
+        no_of_spaces = max_col_lengths[col] - len(d[col][0])
+        header.append(d[col][0] + no_of_spaces*' ')
+    header.append("|")
+
+    print " ".join(header)
+    print separator
+    
+    for row in range(no_of_rows):
+        the_row = []
+        for col in range(no_of_cols):
+            the_row.append("|")
+            no_of_spaces = max_col_lengths[col] - len(str(data[row][col]))
+            the_row.append(str(data[row][col]) + no_of_spaces*' ')
+        the_row.append("|")
+        print " ".join(the_row)
+
+    print separator
 
 
 
@@ -170,11 +195,48 @@ def main():
 
 
 
+def update_validity(db, invalid_ids, valid_ids):
+    statement = "UPDATE " + TABLE_NAME + " SET is_valid='0' WHERE bm_id=?"
+    for id in invalid_ids:
+        db.query(statement, (id, ))
+
+    statement = "UPDATE " + TABLE_NAME + " SET is_valid='1' WHERE bm_id=?"
+    for id in valid_ids:
+        db.query(statement, (id, ))
+
+
+class cc:
+    def __init__(self, cur):
+        self.description = cur.description
+
+
 # Interface functions
 def bm(db):
     statement = "SELECT bm_id, name, path  FROM " + TABLE_NAME
     cur = db.query(statement)
-    print pp(cur)
+    cur_copy = cc(cur)
+    results = cur.fetchall()
+
+    # declare valid_ids & invalid_ids array
+    invalid_ids = []
+    valid_ids = []
+
+    # go over each result
+    for result in results:
+        id = result[0] 
+        path = result[2]
+
+        # if current path invalid, append it to invalid_ids
+        if not os.path.isdir(path):
+            invalid_ids.append(id)
+            # mark for coloring red
+        else:
+            valid_ids.append(id)
+
+    # call update_validity(db, invalid_ids)
+    update_validity(db, invalid_ids, valid_ids)
+
+    pp(cur_copy, results)
 
 
 def bm_a(db):
@@ -212,7 +274,7 @@ def bm_c():
 def bm_f_str(db, str):
     statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " WHERE path like '%"+str+"%'"
     cur = db.query(statement)
-    print pp(cur)
+    pp(cur)
 
 
 def bm_s(db, col):
@@ -220,7 +282,7 @@ def bm_s(db, col):
     if col in opts:
         statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " ORDER BY " + col
         cur = db.query(statement)
-        print pp(cur)
+        pp(cur)
     else:
         print "Sort parameter should be one of the following: "
         for opt in opts:
