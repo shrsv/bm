@@ -29,7 +29,7 @@ CREATE TABLE `bookmarks` (
     `name`  TEXT,
     `path`  TEXT UNIQUE,
     `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
-    `hits`  INTEEGER,
+    `hits`  INTEGER,
     `timestamp` TEXT
 );
 """
