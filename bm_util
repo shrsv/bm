@@ -1,20 +1,19 @@
 #!/usr/bin/python
-
+# -*- coding: utf-8 -*-
 
 # -------------------------------
-# ridiculously simple bookmarking
+# bm: ridiculously simple shell bookmarking
 # -------------------------------
 
 # bm         - show a list of all bookmarks
 # bm a       - add current folder to list of bookmarks
-# bm id	     - cd to folder with id=id
-# bm d id    - delete folder with id=id from bookmark list
+# bm bm_id....     - cd to folder with bm_id=bm_id
+# bm d bm_id    - delete folder with bm_id=bm_id from bookmark list
 # bm c       - clear all dead bookmarks
 # bm r       - renumber all bookmark ids
 # bm f str   - find string str in all bookmark paths and cd to it
 # bm s (bm_id|name|path|hits|timestamp) - sort the table by column
 
-from pprint import pprint
 import os
 import sys
 import re
@@ -23,28 +22,30 @@ import time
 
 # --- GLOBALS ---
 
-SCHEMA = """
+SCHEMA = \
+    """
 BEGIN TRANSACTION
 CREATE TABLE `bookmarks` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
     `path`  TEXT UNIQUE,
     `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
-    `hits`  INTEGER,
+    `hits`  INTEeGER,
     `timestamp` TEXT
 );
 COMMIT;
 END TRANSACTION
 """
 
-RENUMBER = """
+RENUMBER = \
+    """
 BEGIN TRANSACTION;
 CREATE TABLE `bookmarks_backup` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
     `path`  TEXT UNIQUE,
     `is_valid`  INTEGER DEFAULT 1 CHECK(is_valid="1" or is_valid = "0"),
-    `hits`  INTEGER,
+    `hits`  INThEGER,
     `timestamp` TEXT
 );
 INSERT INTO bookmarks_backup (name, path, is_valid, hits, timestamp) SELECT name, path, is_valid, hits, timestamp FROM bookmarks;
@@ -53,75 +54,20 @@ ALTER TABLE bookmarks_backup RENAME TO bookmarks;
 COMMIT;
 """
 
-DB_PATH = "~/.bookmarks.db"
-TABLE_NAME = "bookmarks"
+DB_PATH = '~/.bookmarks.db'
+TABLE_NAME = 'bookmarks'
+
+PRINT_RED = '\033[1;31m%s\033[0m'  # usage: print PRINT_RED % str_var
+
 
 # --- GLOBALS END ---
 
-def shellquote(s):
-    s = s.replace("'", "\'")
-    return s
-
-# pretty print the cursor (with appropriate table size)
-def pp(cursor, data=None, rowlens=0):
-    d = cursor.description
-    if not d:
-        return "You have no bookmark. Type 'bm a' to add a new bookmark!"
-
-    if not data:
-        data = cursor.fetchall()
-
-    no_of_cols = len(d)
-    no_of_rows = len(data)
-
-    # printing will require two passes
-    # PASS1: Determine max lengths in each column
-    # PASS2: Print the column using the data from PASS1
-
-    # PASS1
-    max_col_lengths = []
-    for col in range(no_of_cols):
-        max_col_lengths.append(len(d[col][0]))
-
-    for col in range(no_of_cols):
-        this_col_max =  max_col_lengths[col]
-        for row in range(no_of_rows):
-            l = len(str(data[row][col]))
-            this_col_max = max(this_col_max, l)
-        max_col_lengths[col] = this_col_max
-
-
-    # PASS2
-    total_width = sum(max_col_lengths) + 2*no_of_cols + no_of_cols + 1
-    separator = '-' * total_width 
-
-    print separator
-
-    # print headers
-    header = []
-    for col in range(no_of_cols):
-        header.append("|")
-        no_of_spaces = max_col_lengths[col] - len(d[col][0])
-        header.append(d[col][0] + no_of_spaces*' ')
-    header.append("|")
-
-    print " ".join(header)
-    print separator
-    
-    for row in range(no_of_rows):
-        the_row = []
-        for col in range(no_of_cols):
-            the_row.append("|")
-            no_of_spaces = max_col_lengths[col] - len(str(data[row][col]))
-            the_row.append(str(data[row][col]) + no_of_spaces*' ')
-        the_row.append("|")
-        print " ".join(the_row)
-
-    print separator
-
-
 
 class DatabaseManager(object):
+    """Handle opening ~/.bookmarks.db, maintain connection througout
+    program execution, enable queries (with commits) and during program
+    exit, close the database connection."""
+
     def __init__(self):
         self.conn = sqlite3.connect(os.path.expanduser(DB_PATH))
         try:
@@ -134,209 +80,292 @@ class DatabaseManager(object):
         try:
             self.cur.execute(arg, tup)
         except sqlite3.IntegrityError:
-            print "Folder already bookmarked!"
+            print 'Folder already bookmarked!'
         self.conn.commit()
         return self.cur
 
     def __del__(self):
         self.conn.close()
 
+# --- utility functions --
+def shellquote(s):
+    """Escape single quotes"""
+    s = s.replace("\'", "\'")
+    return s
+
 
 def get_dir_name(path):
+    """ Consider this example:
+    input: /Users/xyz/testy
+    output: testy
+    """
     r = re.search('.*/([^/]*)', path)
     return r.group(1)
 
+# --- utility functions end --
 
-def main():
-    db = DatabaseManager()
+# --- internal functions ---
 
-    # 'bm'
-    if len(sys.argv) < 2:
-        bm(db)
-    # 'bm a'
-    elif sys.argv[1] == 'a':
-        bm_a(db)
-
-
-    # 'bm d id'
-    elif sys.argv[1] == 'd':
-        try:
-            id = int(sys.argv[2])
-        except:
-            print "To delete bookmark 5, type:\n\n\tbm d 5\n"
-            exit()
-
-        bm_d_id(db, id)
-
-    # 'bm r'
-    elif sys.argv[1] == 'r':
-        db.conn.executescript(RENUMBER)
-
-    # 'bm f str'
-    elif sys.argv[1] == 'f':
-        str = sys.argv[2]
-        bm_f_str(db, str)
-
-    # 'bm s value'
-    elif sys.argv[1] == 's':
-        col = sys.argv[2]
-        bm_s(db, col)
-        
-
-    else:
-        # goto bookmark, if number is valid
-        try:
-            id = int(sys.argv[1])
-        except ValueError:
-            print "To goto bookmark 5, type:\n\n\tbm 5\n"
-            exit()
-
-        bm_id(db, id)
-
-
-
-def update_validity(db, invalid_ids, valid_ids):
-    statement = "UPDATE " + TABLE_NAME + " SET is_valid='0' WHERE bm_id=?"
-    for id in invalid_ids:
-        db.query(statement, (id, ))
-
-    statement = "UPDATE " + TABLE_NAME + " SET is_valid='1' WHERE bm_id=?"
-    for id in valid_ids:
-        db.query(statement, (id, ))
-
-
-class cc:
-    def __init__(self, cur):
-        self.description = cur.description
-
-
-# Interface functions
-def bm(db):
-    statement = "SELECT bm_id, name, path  FROM " + TABLE_NAME
+def update_validity(db):
+    """Goes through each path in the database and checks for
+    existence/validity of each path. If it's valid, then the
+    corresponding is_valid value in the table is set to 1, else 0"""
+    statement = 'SELECT bm_id, path  FROM ' + TABLE_NAME
     cur = db.query(statement)
-    cur_copy = cc(cur)
     results = cur.fetchall()
 
     # declare valid_ids & invalid_ids array
+
     invalid_ids = []
     valid_ids = []
 
     # go over each result
+
     for result in results:
-        id = result[0] 
-        path = result[2]
+        bm_id = result[0]
+        path = result[1]
 
         # if current path invalid, append it to invalid_ids
+
         if not os.path.isdir(path):
-            invalid_ids.append(id)
-            # mark for coloring red
+            invalid_ids.append(bm_id)  # mark for coloring red
         else:
-            valid_ids.append(id)
+            valid_ids.append(bm_id)
 
-    # call update_validity(db, invalid_ids)
-    update_validity(db, invalid_ids, valid_ids)
+    statement = 'UPDATE ' + TABLE_NAME \
+        + " SET is_valid='0' WHERE bm_id=?"
+    for bm_id in invalid_ids:
+        db.query(statement, (bm_id, ))
 
-    pp(cur_copy, results)
+    statement = 'UPDATE ' + TABLE_NAME \
+        + " SET is_valid='1' WHERE bm_id=?"
+    for bm_id in valid_ids:
+        db.query(statement, (bm_id, ))
+    return invalid_ids
+
+
+# pretty print the cursor (with appropriate table size)
+
+def pp(cursor, invalid_ids):
+    """ Pretty print given a cursor. Uses two passes -- first one to determine 
+    the required column widths and second one to actually print the table."""
+
+    d = cursor.description
+
+    if not d:
+        print "You have no bookmark. Type 'bm a' to add a new bookmark!"
+        exit()
+
+    data = cursor.fetchall()
+
+    no_of_cols = len(d)
+    no_of_rows = len(data)
+
+    # printing will require two passes
+    # PASS1: Determine max lengths in each column
+    # PASS2: Print the column using the data from PASS1
+
+    # PASS1
+
+    max_col_lengths = []
+    for col in range(no_of_cols):
+        max_col_lengths.append(len(d[col][0]))
+
+    for col in range(no_of_cols):
+        this_col_max = max_col_lengths[col]
+        for row in range(no_of_rows):
+            l = len(str(data[row][col]))
+            this_col_max = max(this_col_max, l)
+        max_col_lengths[col] = this_col_max
+
+    # PASS2
+
+    total_width = sum(max_col_lengths) + 2 * no_of_cols + no_of_cols + 1
+    separator = '-' * total_width
+
+    print separator
+
+    # print headers
+
+    header = []
+    for col in range(no_of_cols):
+        header.append('|')
+        no_of_spaces = max_col_lengths[col] - len(d[col][0])
+        header.append(d[col][0] + no_of_spaces * ' ')
+    header.append('|')
+
+    print ' '.join(header)
+    print separator
+
+    for row in range(no_of_rows):
+        the_row = []
+        for col in range(no_of_cols):
+            the_row.append('|')
+            no_of_spaces = max_col_lengths[col] \
+                - len(str(data[row][col]))
+            the_row.append(str(data[row][col]) + no_of_spaces * ' ')
+        the_row.append('|')
+        if data[row][0] in invalid_ids:
+            print PRINT_RED % ' '.join(the_row)
+        else:
+            print ' '.join(the_row)
+
+    print separator
+
+# -- internal functions end ---
+
+
+# -- interface functions ---
+
+def main():
+    """Implements basic option parsing."""
+    db = DatabaseManager()
+
+    # 'bm'
+
+    if len(sys.argv) < 2:
+        bm(db)
+    elif sys.argv[1] == 'a':
+
+    # 'bm a'
+
+        bm_a(db)
+    elif sys.argv[1] == 'd':
+
+    # 'bm d bm_id'
+
+        try:
+            bm_id = int(sys.argv[2])
+        except:
+            print '''To delete bookmark 5, type:
+
+\tbm d 5
+'''
+            exit()
+
+        bm_d_id(db, bm_id)
+    elif sys.argv[1] == 'r':
+
+    # 'bm r'
+
+        db.conn.executescript(RENUMBER)
+    elif sys.argv[1] == 'f':
+
+    # 'bm f str'
+
+        str = sys.argv[2]
+        bm_f_str(db, str)
+    elif sys.argv[1] == 's':
+
+    # 'bm s value'
+
+        col = sys.argv[2]
+        bm_s(db, col)
+    elif sys.argv[1] == 'c':
+
+    # 'bm c'
+
+        bm_c(db)
+    else:
+
+        # goto bookmark, if number is valid
+
+        try:
+            bm_id = int(sys.argv[1])
+        except ValueError:
+            print '''To goto bookmark 5, type:
+
+\tbm 5
+'''
+            exit()
+
+        bm_id(db, bm_id)
+
+
+
+def bm(db):
+    """Print the whole bookmarks table. Before doing that it's updated
+    for folder validity"""
+    invalid_ids = update_validity(db)
+    statement = 'SELECT bm_id, name, path  FROM ' + TABLE_NAME
+    cur = db.query(statement)
+    pp(cur, invalid_ids)
 
 
 def bm_a(db):
+    """Takes pwd = present working directory, does some parsing and information generation,
+    then adds a new bookmark to the bookmarks table."""
     bm_id = None
     bm_path = os.getcwd()
     bm_name = get_dir_name(bm_path)
-    bm_isvalid = "1"
-    bm_hits = "0"
+    bm_isvalid = '1'
+    bm_hits = '0'
     bm_timestamp = time.time()
 
-    statement = "INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?, ?, ?, ?)"
-    tup = (bm_id, bm_name, bm_path, bm_isvalid, bm_hits, bm_timestamp)
+    statement = 'INSERT INTO ' + TABLE_NAME \
+        + ' VALUES (?, ?, ?, ?, ?, ?)'
+    tup = (
+        bm_id,
+        bm_name,
+        bm_path,
+        bm_isvalid,
+        bm_hits,
+        bm_timestamp,
+        )
     db.query(statement, tup)
 
 
-def bm_id(db, id):
-    statement = "SELECT * FROM " + TABLE_NAME + " WHERE bm_id=?"
-    cur = db.query(statement, (id, ))
-    res =  cur.fetchone()
+def bm_id(db, bm_id):
+    """This works in conjuction with the shell function "bm". Given
+    bm_id, finds corresponding path, shellquotes it, then prints it.
+    This output is used by the shell function to change directory in
+    the parent process of this python program."""
+    statement = 'SELECT * FROM ' + TABLE_NAME + ' WHERE bm_id=?'
+    cur = db.query(statement, (bm_id, ))
+    res = cur.fetchone()
     new_hits = res[4] + 1
-    statement = "UPDATE " + TABLE_NAME + " SET hits=? WHERE bm_id=?"
-    db.query(statement, (new_hits,id))
+    statement = 'UPDATE ' + TABLE_NAME + ' SET hits=? WHERE bm_id=?'
+    db.query(statement, (new_hits, bm_id))
     print shellquote(res[2])
 
 
-def bm_d_id(db, id):
-    statement = "DELETE FROM " + TABLE_NAME + " WHERE bm_id=?"
-    db.query(statement, (id, ))
+def bm_d_id(db, bm_id):
+    """Deletes an entry from bookmarks table given a valid id."""
+    statement = 'DELETE FROM ' + TABLE_NAME + ' WHERE bm_id=?'
+    db.query(statement, (bm_id, ))
 
 
-def bm_c():
-    pass
+def bm_c(db):
+    """Deletes all invalid entries in bookmarks table."""
+    invalid_ids = update_validity(db)
+    for bm_id in invalid_ids:
+        bm_d_id(db, bm_id)
 
 
 def bm_f_str(db, str):
-    statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " WHERE path like '%"+str+"%'"
+    """Does a path search for given string and displays results."""
+    statement = 'SELECT bm_id, name, path FROM ' + TABLE_NAME \
+        + " WHERE path like '%" + str + "%'"
+    invalid_ids = update_validity(db)
     cur = db.query(statement)
-    pp(cur)
+    pp(cur, invalid_ids)
 
 
 def bm_s(db, col):
-    opts = ["bm_id", "name", "path",  "hits", "timestamp"]
+    """Simple sorting of the internal databse based on various parameters."""
+    invalid_ids = update_validity(db)
+    opts = ['bm_id', 'name', 'path', 'hits', 'timestamp']
     if col in opts:
-        statement = "SELECT bm_id, name, path FROM " + TABLE_NAME + " ORDER BY " + col
+        statement = 'SELECT bm_id, name, path FROM ' + TABLE_NAME \
+            + ' ORDER BY ' + col
         cur = db.query(statement)
-        pp(cur)
+        pp(cur, invalid_ids)
     else:
-        print "Sort parameter should be one of the following: "
+        print 'Sort parameter should be one of the following: '
         for opt in opts:
             print opt
-     
 
-# Internal functions
-def print_complete_table(sort="id"):
-    pass
-
-
-def change_directory(path="/home"):
-    pass
-
-
-def is_path_valid(path="/home"):
-    pass
-
-
-
-# Cursor row parsers (return strings)
-def get_str_id(cursor="c"):
-    pass
-
-def get_str_name(cursor="c"):
-    pass
-
-def get_str_path(cursor="c"):
-    pass
-
-def get_str_hits(cursor="c"):
-    pass
-
-def get_str_time(cursor="c"):
-    pass
-
-
-# sqlite functions (returns cursors)
-def get_cur_all_rows():
-    pass
-
-
-def get_cur_row(id=1):
-    pass
-
-
-def get_cur_row_find(str="str"):
-    pass
-
-
-
-# sqlite functions (return 1 = success or 0 = failure)
-def del_row(id=1):
-    pass
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
+
+            
