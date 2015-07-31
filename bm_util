@@ -24,7 +24,6 @@ import time
 
 SCHEMA = \
     """
-BEGIN TRANSACTION;
 CREATE TABLE `bookmarks` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
@@ -34,12 +33,10 @@ CREATE TABLE `bookmarks` (
     `timestamp` TEXT
 );
 COMMIT;
-END TRANSACTION;
 """
 
 RENUMBER = \
     """
-BEGIN TRANSACTION;
 CREATE TABLE `bookmarks_backup` (
     `bm_id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     `name`  TEXT,
@@ -73,7 +70,7 @@ class DatabaseManager:
         try:
             self.conn.executescript(SCHEMA)
         except Exception, err:
-            print err
+            pass
         self.cur = self.conn.cursor()
 
     def query(self, arg, tup=()):
