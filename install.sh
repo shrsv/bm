@@ -17,4 +17,5 @@ if [[ $? -ne 0 ]]; then
     echo -e "\nsource ~/.bm_bash" >> ~/.bashrc
 fi
 
-echo Installation Successful.
+echo Installation Successful. 
+echo Please restart the terminal or do "source ~/.bashrc"

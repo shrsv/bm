@@ -84,8 +84,8 @@ class DatabaseManager:
 
 # --- utility functions --
 def shellquote(s):
-    """Escape single quotes"""
-    s = s.replace("\'", "\'")
+    """Escape double quotes"""
+    s = s.replace('"', '\"')
     return s
 
 
@@ -321,7 +321,7 @@ def bm_id_goto(db, id):
     new_hits = res[4] + 1
     statement = 'UPDATE ' + TABLE_NAME + ' SET hits=? WHERE bm_id=?'
     db.query(statement, (new_hits, id))
-    print shellquote(res[2])
+    print shellquote(res[2]),
 
 
 def bm_d_id(db, bm_id):
