@@ -318,6 +318,10 @@ def bm_id_goto(db, id):
     statement = 'SELECT * FROM ' + TABLE_NAME + ' WHERE bm_id=?'
     cur = db.query(statement, (id, ))
     res = cur.fetchone()
+    if not res:
+        # Invalid bm_id. Try again.
+        print os.getcwd()
+        exit()
     new_hits = res[4] + 1
     statement = 'UPDATE ' + TABLE_NAME + ' SET hits=? WHERE bm_id=?'
     db.query(statement, (new_hits, id))
