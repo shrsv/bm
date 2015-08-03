@@ -8,7 +8,7 @@
 # bm         - show a list of all bookmarks
 # bm a       - add current folder to list of bookmarks
 # bm bm_id....     - cd to folder with bm_id=bm_id
-# bm d bm_id    - delete folder with bm_id=bm_id from bookmark list
+# bm d bm_id1, bm_id2, ...    - delete folder with bm_id=bm_id from bookmark list
 # bm c       - clear all dead bookmarks
 # bm r       - renumber all bookmark ids
 # bm f str   - find string str in all bookmark paths and cd to it
@@ -227,18 +227,18 @@ def main():
         bm_a(db)
     elif sys.argv[1] == 'd':
 
-    # 'bm d bm_id'
+    # 'bm d bm_id1, bm_id2, ...'
 
         try:
-            bm_id = int(sys.argv[2])
+            bm_ids = [int(bm_id) for bm_id in ''.join(sys.argv[2:]).split(",")]
         except:
-            print '''To delete bookmark 5, type:
+            print '''To delete bookmark 5 and 6, type:
 
-\tbm d 5
+\tbm d 5, 6
 '''
             exit()
 
-        bm_d_id(db, bm_id)
+        bm_d_id(db, bm_ids)
     elif sys.argv[1] == 'r':
 
     # 'bm r'
@@ -324,10 +324,11 @@ def bm_id_goto(db, id):
     print shellquote(res[2]),
 
 
-def bm_d_id(db, bm_id):
+def bm_d_id(db, bm_ids):
     """Deletes an entry from bookmarks table given a valid id."""
-    statement = 'DELETE FROM ' + TABLE_NAME + ' WHERE bm_id=?'
-    db.query(statement, (bm_id, ))
+    for bm_id in bm_ids:
+        statement = 'DELETE FROM ' + TABLE_NAME + ' WHERE bm_id=?'
+        db.query(statement, (bm_id, ))
 
 
 def bm_c(db):

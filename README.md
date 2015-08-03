@@ -48,7 +48,7 @@ The advantage of this id based approach is that it causes minimum cognitive load
 1. `bm` show a list of all bookmarks
 2. `bm a` add current folder to list of bookmarks
 3. `bm id` cd to folder with id=id
-4. `bm d id` delete folder with id=id from bookmark list
+4. `bm d id bm_id1, bm_id2, ...` delete folder with id=id from bookmark list
 5. `bm c`clear all dead bookmarks
 6. `bm r` renumber all bookmark ids
 7. `bm f str` find string str in all bookmark paths and cd to it
