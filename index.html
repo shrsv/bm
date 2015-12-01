@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>bm by shrsv</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-dark.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>bm</h1>
+        <p>ridiculously simple shell bookmarking</p>
+        <p class="view"><a href="https://github.com/shrsv/bm">View the Project on GitHub <small>shrsv/bm</small></a></p>
+        <ul>
+          <li><a href="https://github.com/shrsv/bm/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/shrsv/bm/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/shrsv/bm">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <p><code>bm</code> is an ultra-simple bookmarking script for the bash shell. </p>
+
+<p><img src="screenshot.jpeg" alt="Screenshot"></p>
+
+<h1>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>Download or clone this repository. Then:</p>
+
+<pre><code>$ cd bm
+$ chmod u+x install.sh
+$ ./install.sh  # will ask for password
+</code></pre>
+
+<h1>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>Goto a folder, type:</p>
+
+<pre><code>bm a
+</code></pre>
+
+<p>Now type:</p>
+
+<pre><code>bm
+</code></pre>
+
+<p>You should see a table similar to this:</p>
+
+<pre><code>----------------------------------------
+| bm_id | name   | path                |
+----------------------------------------
+| 1     | Videos | /Users/shrsv/Videos |
+----------------------------------------
+</code></pre>
+
+<p>Now from any folder, you can <code>cd</code> to the <code>Videos</code> directory simply by typing this:</p>
+
+<pre><code>bm 1 
+</code></pre>
+
+<p>That's all there is to it! </p>
+
+<h1>
+<a id="why-use-it" class="anchor" href="#why-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why use it</h1>
+
+<p>The advantage of this id based approach is that it causes minimum cognitive load to the brain. You just have to scan a list of names and pick one from that, whereas in many bookmarking systems you have to remember the name of the bookmark and then type it to <code>cd</code> into it. Even with autocomplete, retrieving things from memory causes more cognitive load compared to a pick &amp; choose approach (in my experience). When working on a complex problem you must focus on the problem and only the problem. Tool or software or filesystem terminology should not come into your working memory, but only the problem terminology should be in your working memory. So: <code>bm</code> asks you no questions, asks you to remember nothing; all it asks you to do is scan a list and make a choice.</p>
+
+<h1>
+<a id="options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options</h1>
+
+<ol>
+<li>
+<code>bm</code> show a list of all bookmarks</li>
+<li>
+<code>bm a</code> add current folder to list of bookmarks</li>
+<li>
+<code>bm id</code> cd to folder with id=id</li>
+<li>
+<code>bm d id bm_id1, bm_id2, ...</code> delete folder with id=id from bookmark list</li>
+<li>
+<code>bm c</code>clear all dead bookmarks</li>
+<li>
+<code>bm r</code> renumber all bookmark ids</li>
+<li>
+<code>bm f str</code> find string str in all bookmark paths and cd to it</li>
+<li>
+<code>bm s (bm_id|name|path|hits|timestamp)</code> sort the bookmarks table by column</li>
+</ol>
+
+<h1>
+<a id="files" class="anchor" href="#files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Files</h1>
+
+<ol>
+<li>
+<code>bm_util</code> by default installed in <code>/usr/bin</code> but you can install it in any <code>bin</code> folder of your choice. This python script provides functionality.</li>
+<li>
+<code>~/.bm_bash</code> contains the shell function <code>bm</code>. This file is sourced in <code>~/.bashrc</code> by the installation script.</li>
+<li>
+<code>~/.bookmarks.db</code> sqlite database that contains all the bookmark entries. You can open using: <code>sqlite3 ~/.bookmarks.db</code>
+</li>
+</ol>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/shrsv">shrsv</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
